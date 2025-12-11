@@ -108,7 +108,7 @@ async function requestNotificationPermission() {
         
         if (permission === 'granted') {
             // Notification de test
-            new Notification('MétéoPWA', {
+            await showNotification('MétéoPWA', {
                 body: 'Les notifications sont maintenant activées ! 🎉',
                 icon: 'icons/icon-192.png',
                 tag: 'welcome'
@@ -119,7 +119,7 @@ async function requestNotificationPermission() {
     }
 }
 
-function sendWeatherNotification(city, message, type = 'info') {
+async function sendWeatherNotification(city, message, type = 'info') {
     if (!('Notification' in window) || Notification.permission !== 'granted') {
         return;
     }
@@ -130,13 +130,34 @@ function sendWeatherNotification(city, message, type = 'info') {
         info: 'ℹ️'
     };
 
-    new Notification(`${icons[type]} ${city}`, {
+    await showNotification(`${icons[type]} ${city}`, {
         body: message,
         icon: 'icons/icon-192.png',
         badge: 'icons/icon-96.png',
         tag: `weather-${type}`,
         requireInteraction: false
     });
+}
+
+// ===== Helper pour notifications =====
+async function showNotification(title, options) {
+    // Essayer d'utiliser le Service Worker (pour PWA installées)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification(title, options);
+            return;
+        } catch (error) {
+            console.log('[Notif] Fallback vers Notification API:', error);
+        }
+    }
+    
+    // Fallback pour navigateurs classiques
+    try {
+        new Notification(title, options);
+    } catch (error) {
+        console.error('[Notif] Erreur:', error);
+    }
 }
 // ===== Recherche et API Météo =====
 async function handleSearch() {
